@@ -13,6 +13,7 @@ getgenv().AimPart = "Head"
 getgenv().FOV = 50
 getgenv().MaxDistance = 1000
 getgenv().ESPEnabled = true
+getgenv().MaxDistanceESP = 1000 -- Distância máxima ESP
 
 -- SERVIÇOS
 local Players = game:GetService("Players")
@@ -41,6 +42,8 @@ end)
 UserInputService.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton2 then
         aiming = true
+    elseif input.KeyCode == Enum.KeyCode.RightShift then
+        Frame.Visible = not Frame.Visible
     end
 end)
 
@@ -101,7 +104,9 @@ local function createESP(player)
             local headPos, headVis = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
             local legPos, legVis = Camera:WorldToViewportPoint(root.Position - Vector3.new(0, 3, 0))
 
-            if rootVis and headVis and legVis and hum.Health > 0 then
+            local dist = (Camera.CFrame.Position - root.Position).Magnitude
+
+            if rootVis and headVis and legVis and hum.Health > 0 and dist <= getgenv().MaxDistanceESP then
                 local height = math.abs(headPos.Y - legPos.Y)
                 local width = height / 2
                 box.Size = Vector2.new(width, height)
@@ -116,9 +121,8 @@ local function createESP(player)
                     nameTag.Color = Color3.fromRGB(255, 0, 0)
                 end
 
-                local dist = math.floor((Camera.CFrame.Position - root.Position).Magnitude)
                 nameTag.Position = Vector2.new(rootPos.X, headPos.Y - 16)
-                nameTag.Text = player.Name .. " [" .. dist .. "m]"
+                nameTag.Text = player.Name .. " [" .. math.floor(dist) .. "m]"
                 nameTag.Visible = true
             else
                 box.Visible = false
@@ -150,7 +154,7 @@ ScreenGui.Name = "AimlockMenu"
 ScreenGui.ResetOnSpawn = false
 
 local Frame = Instance.new("Frame", ScreenGui)
-Frame.Size = UDim2.new(0, 220, 0, 320)
+Frame.Size = UDim2.new(0, 220, 0, 360)
 Frame.Position = UDim2.new(0, 20, 0, 100)
 Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 Frame.BorderSizePixel = 0
@@ -165,6 +169,7 @@ Title.TextColor3 = Color3.new(1, 1, 1)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 18
 
+-- Funções de criação
 local function createButton(parent, yPos, text)
     local btn = Instance.new("TextButton", parent)
     btn.Size = UDim2.new(1, -20, 0, 30)
@@ -193,34 +198,35 @@ end
 local y = 40
 local gap = 40
 
--- Botões principais
-local Toggle = createButton(Frame, y, getgenv().Aimlock and "Desativar Aimlock" or "Ativar Aimlock")
-Toggle.MouseButton1Click:Connect(function()
+-- 🔹 Aimlock
+local AimlockToggle = createButton(Frame, y, getgenv().Aimlock and "Desativar Aimlock" or "Ativar Aimlock")
+AimlockToggle.MouseButton1Click:Connect(function()
     getgenv().Aimlock = not getgenv().Aimlock
-    Toggle.Text = getgenv().Aimlock and "Desativar Aimlock" or "Ativar Aimlock"
+    AimlockToggle.Text = getgenv().Aimlock and "Desativar Aimlock" or "Ativar Aimlock"
 end)
 y = y + gap
 
-local AimPartDropdown = createTextBox(Frame, y, "Parte para mirar (ex: Head)", getgenv().AimPart)
-AimPartDropdown.FocusLost:Connect(function()
-    getgenv().AimPart = AimPartDropdown.Text
+local AimPartBox = createTextBox(Frame, y, "Parte para mirar (ex: Head)", getgenv().AimPart)
+AimPartBox.FocusLost:Connect(function()
+    getgenv().AimPart = AimPartBox.Text
 end)
 y = y + gap
 
-local FOVInput = createTextBox(Frame, y, "FOV (ex: 50)", getgenv().FOV)
-FOVInput.FocusLost:Connect(function()
-    local val = tonumber(FOVInput.Text)
+local FOVBox = createTextBox(Frame, y, "FOV (ex: 50)", getgenv().FOV)
+FOVBox.FocusLost:Connect(function()
+    local val = tonumber(FOVBox.Text)
     if val then getgenv().FOV = val end
 end)
 y = y + gap
 
-local DistInput = createTextBox(Frame, y, "Distância Máx. (ex: 2000)", getgenv().MaxDistance)
-DistInput.FocusLost:Connect(function()
-    local val = tonumber(DistInput.Text)
+local DistAimBox = createTextBox(Frame, y, "Distância Máx. Aimlock (ex: 2000)", getgenv().MaxDistance)
+DistAimBox.FocusLost:Connect(function()
+    local val = tonumber(DistAimBox.Text)
     if val then getgenv().MaxDistance = val end
 end)
 y = y + gap
 
+-- 🔹 ESP
 local ESPToggle = createButton(Frame, y, getgenv().ESPEnabled and "Desativar ESP" or "Ativar ESP")
 ESPToggle.MouseButton1Click:Connect(function()
     getgenv().ESPEnabled = not getgenv().ESPEnabled
@@ -228,7 +234,14 @@ ESPToggle.MouseButton1Click:Connect(function()
 end)
 y = y + gap
 
--- Botão para desativar script
+local ESPDistBox = createTextBox(Frame, y, "Distância Máx. ESP (ex: 1000)", getgenv().MaxDistanceESP)
+ESPDistBox.FocusLost:Connect(function()
+    local val = tonumber(ESPDistBox.Text)
+    if val then getgenv().MaxDistanceESP = val end
+end)
+y = y + gap
+
+-- 🔹 Desativar script
 local DisableButton = createButton(Frame, y, "Desativar Script")
 DisableButton.MouseButton1Click:Connect(function()
     if fovCircle then fovCircle:Remove() end
@@ -238,10 +251,8 @@ DisableButton.MouseButton1Click:Connect(function()
 end)
 
 -- Minimizar/Restaurar Menu com RightShift
-local menuVisible = true
 UserInputService.InputBegan:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.RightShift then
-        menuVisible = not menuVisible
-        Frame.Visible = menuVisible
+        Frame.Visible = not Frame.Visible
     end
 end)
