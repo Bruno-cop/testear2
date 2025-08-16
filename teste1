@@ -144,7 +144,7 @@ ScreenGui.Name = "AimlockMenu"
 ScreenGui.ResetOnSpawn = false
 
 local Frame = Instance.new("Frame", ScreenGui)
-Frame.Size = UDim2.new(0,220,0,380)
+Frame.Size = UDim2.new(0,220,0,420) -- aumentado para caber o botão de Prediction
 Frame.Position = UDim2.new(0,20,0,100)
 Frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
 Frame.BorderSizePixel = 0
@@ -217,6 +217,19 @@ ESPToggle.MouseButton1Click:Connect(function()
     ESPToggle.Text = getgenv().ESPEnabled and "Desativar ESP" or "Ativar ESP"
 end)
 y=y+gap
+
+-- Botão de Prediction
+local PredictionToggle = createButton(Frame, y, getgenv().Prediction > 0 and "Desativar Prediction" or "Ativar Prediction")
+PredictionToggle.MouseButton1Click:Connect(function()
+    if getgenv().Prediction > 0 then
+        getgenv().Prediction = 0
+        PredictionToggle.Text = "Ativar Prediction"
+    else
+        getgenv().Prediction = 0.15
+        PredictionToggle.Text = "Desativar Prediction"
+    end
+end)
+y = y + gap
 
 local DisableBtn = createButton(Frame,y,"Desativar Script")
 DisableBtn.MouseButton1Click:Connect(function()
